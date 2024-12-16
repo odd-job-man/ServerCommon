@@ -1,11 +1,13 @@
 #pragma once
 #include <memory.h>
 #include "CLockFreeQueue.h"
-#include <stddef.h>
-#include <list>
-#include "Session.h"
-//#include "LanServer.h"
+//#include "Session.h"
+#ifdef LANSERVER
+#include "LanServer.h"
+#endif
+#ifdef GAMESERVER
 #include "GameServer.h"
+#endif
 #include "CLockFreeObjectPool.h"
 
 #define QUEUE
@@ -61,7 +63,6 @@ public:
 		unsigned char checkSum_;
 	};
 #pragma pack(pop)
-
 	static inline unsigned char PACKET_CODE;
 	static inline unsigned char FIXED_KEY;
 	static constexpr int RINGBUFFER_SIZE = 10000;
@@ -670,10 +671,12 @@ public:
 #endif
 	static inline CTlsObjectPool<Packet, false> packetPool_;
 	friend class SmartPacket;
+#ifdef GAMESERVER
 	friend void GameServer::RecvProc(Session* pSession, int numberOfBytesTransferred);
 	friend BOOL GameServer::SendPost(Session* pSession);
 	friend void GameServer::SendProc(Session* pSession, DWORD dwNumberOfBytesTransferred);
 	friend void GameServer::ReleaseSession(Session* pSession);
+#endif
 };
 
 class SmartPacket
