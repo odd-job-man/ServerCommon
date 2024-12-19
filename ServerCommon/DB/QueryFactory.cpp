@@ -1,7 +1,7 @@
 #include<strsafe.h>
 #include"QueryFactory.h"
 #include "Logger.h"
-#include"mysql.h"
+#include "mysql.h"
 #include"Assert.h"
 #pragma comment(lib,"LoggerMT.lib")
 

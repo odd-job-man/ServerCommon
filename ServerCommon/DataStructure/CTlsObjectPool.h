@@ -196,6 +196,7 @@ public:
 	alignas(64) uint64_t metaCnt_;
 	alignas(64) long capacity_;
 	alignas(64) long size_;
+	long AllocSize_;
 private:
 
 	// 스레드의 Tls에 최초 할당 혹은 다써서 버킷이 없다면 락프리 스택구조로 버킷을 할당받는다.
@@ -279,6 +280,8 @@ public:
 		{
 			new(&pNode->data)T{ std::forward<Types>(args)... };
 		}
+
+		InterlockedIncrement(&AllocSize_);
 		return &pNode->data;
 	}
 
@@ -293,6 +296,7 @@ public:
 
 		if (!pBucket->RETURN_NODE_TO_BUCKET_AND_CHECK_BUCKET_HAVETO_FREE())
 		{
+			InterlockedDecrement(&AllocSize_);
 			return;
 		}
 
@@ -331,6 +335,7 @@ public:
 			// 2번 CAS 54번째 라인의 if문안의 CAS 떄문에 실패할수 잇으며 이를통해 스핀락이 아니게됨
 			InterlockedCompareExchange(&metaTail_, newMetaTail, metaTail);
 			InterlockedIncrement(&size_);
+			InterlockedDecrement(&AllocSize_);
 			return;
 		}
 	}

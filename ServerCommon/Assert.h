@@ -7,6 +7,13 @@ DWORD errCode = GetLastError();\
 __debugbreak();}\
 }while(0)\
 
+#define ASSERT_LOG(expression,str) do{\
+if(expression){\
+	LOG(L"ERROR",DEBUG,TEXTFILE,L"%s errCode : %d",str, GetLastError());\
+__debugbreak();\
+}\
+}while(0)\
+
 #define ASSERT_MYSQL_CONNECTION(connectRet) do{\
 if(connectRet == NULL){\
 fprintf(stderr, "Mysql connection error : %s", mysql_error(connectRet));\
@@ -34,17 +41,39 @@ if(queryRet != 0){\
 	}\
 }while(0)\
 
-#define ASSERT_ZERO_LOG(ret,str) do{\
-if(ret == 0){\
-	LOG(L"ERROR",DEBUG,TEXTFILE,L"%s errCode:%d",TO_STRING(str), GetLastError());\
+#define ASSERT_NON_ZERO_LOG(ret,str) do{\
+if(ret != 0){\
+	LOG(L"ERROR",SYSTEM,TEXTFILE,L"%s errCode : %d",str, WSAGetLastError());\
 	__debugbreak();}\
 }while(0)\
 
-
+#define ASSERT_ZERO_LOG(ret,str) do{\
+if(ret == 0){\
+	LOG(L"ERROR",SYSTEM,TEXTFILE,L"%s errCode : %d",str, GetLastError());\
+	__debugbreak();}\
+}while(0)\
 
 #define ASSERT_NULL_LOG(ret,str) do{\
 if(ret == 0){\
-	LOG(L"ERROR",DEBUG,TEXTFILE,L"%s errCode:%d",TO_STRING(str), GetLastError());\
+	LOG(L"ERROR",SYSTEM,TEXTFILE,L"%s errCode : %d",str, GetLastError());\
 	__debugbreak();}\
 }while(0)\
 
+
+#define ASSERT_INVALID_SOCKET_LOG(ret,str) do{\
+if(ret == INVALID_SOCKET){\
+	LOG(L"ERROR",DEBUG,TEXTFILE,L"%s errCode : %d",str, GetLastError());\
+	__debugbreak();}\
+}while(0)\
+
+#define ASSERT_SOCKET_ERROR_LOG(ret,str) do{\
+if(ret == SOCKET_ERROR){\
+	LOG(L"ERROR",DEBUG,TEXTFILE,L"%s errCode : %d",str, GetLastError());\
+	__debugbreak();}\
+}while(0)\
+
+#define ASSERT_FALSE_LOG(ret,str) do{\
+if(ret == 0){\
+	LOG(L"ERROR",SYSTEM,TEXTFILE,L"%s errCode : %d",str, GetLastError());\
+	__debugbreak();}\
+}while(0)\
