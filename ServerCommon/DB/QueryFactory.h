@@ -8,7 +8,7 @@ using MYSQL_RES_PTR = std::unique_ptr<MYSQL_RES, MYSQL_RES_DELETER>;
 
 class QueryFactory
 {
-public:
+private:
 	struct BufInfo
 	{
 		char* pBuf;
@@ -24,18 +24,18 @@ public:
 	static constexpr int INITIAL_SIZE = 500;
 	DWORD tlsIdx_;
 	BufInfo* GetBufInfo();
-private:
 	QueryFactory();
 	void Resize(BufInfo* pBI, char* end);
 	static inline std::once_flag flag;
 public:
 	MYSQL_RES_PTR ExecuteReadQuery();
-	void ExcuteWriteQuery();
+	int ExcuteWriteQuery();
 	const char* MAKE_QUERY(const char* pStr, ...);
 	const char* MAKE_SELECT_FROM(const char* pColumnList, const char* pTableName, const char* pOptConditionFormatStr, ...);
 	const char* MAKE_UPDATE_SET(bool bEnd, const char* pTableName, const char* pSetFormatString, ...);
 	const char* MAKE_WHERE(bool bEnd, const char* pWhereFormatStr, ...);
 	const char* MAKE_INSERT_INTO(bool bEnd, const char* pTableName, const char* pColumnList, const char* pColumnFormatStr, ...);
+	void WriteMutiQueryFreeResult();
 
 	__forceinline void Clear()
 	{

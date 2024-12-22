@@ -10,12 +10,15 @@ struct HMonitor
 	HANDLE _hProcess;
 	int _iNumberOfProcessors;
 
+	void UpdateQueryData();
 	double GetPPB();
 	double GetPNPB();
 	double GetAB();
 	double GetNPB();
 	double GetRetranse();
 	double GetTCPTimeOuts();
+	double GetNetWorkRecvBytes();
+	double GetNetWorkSendBytes();
 
 public:
 	float _fProcessorTotal;
@@ -38,6 +41,10 @@ private:
 	PDH_HCOUNTER NPBCounter;
 	PDH_HCOUNTER RETRANSECounter;
 	PDH_HCOUNTER TCPTimeOutCounter;
+	PDH_HCOUNTER netWorkRecvbytes1;
+	PDH_HCOUNTER netWorkRecvbytes2;
+	PDH_HCOUNTER netWorkSendbytes1;
+	PDH_HCOUNTER netWorkSendbytes2;
 
 	PDH_HQUERY PPBQuery;
 	PDH_HQUERY PNPBQuery;
@@ -45,4 +52,5 @@ private:
 	PDH_HQUERY NPBQuery;
 	PDH_HQUERY RETRANSEQuery;
 	PDH_HQUERY TCPTimeOutQuery;
+	PDH_HQUERY hQuery;
 };

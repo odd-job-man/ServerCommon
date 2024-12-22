@@ -68,9 +68,13 @@ QueryFactory::BufInfo* QueryFactory::GetBufInfo()
 		pBI->size = INITIAL_SIZE;
 		EnterCriticalSection(&connCS);
 		mysql_init(&pBI->conn);
-		pBI->connection = mysql_real_connect(&pBI->conn, "localhost", "root", "vector0812@!", "oddjobman", 3306, (char*)NULL, 0);
+		pBI->connection = mysql_real_connect(&pBI->conn, "localhost", "root", "vector0812@!", "logdb", 3306, (char*)NULL, 0);
 		LeaveCriticalSection(&connCS);
-		ASSERT_MYSQL_CONNECTION(pBI->connection);
+		if (pBI->connection == NULL)
+		{
+			LOG(L"ERROR", SYSTEM, TEXTFILE, L"Mysql connection error : %d", mysql_errno(pBI->connection));
+			__debugbreak();
+		}
 		ASSERT_MYSQL_MULTI_STATEMENT_ON(mysql_set_server_option(pBI->connection, MYSQL_OPTION_MULTI_STATEMENTS_ON));
 		TlsSetValue(tlsIdx_, pBI);
 	}
@@ -99,11 +103,17 @@ MYSQL_RES_PTR QueryFactory::ExecuteReadQuery()
 	return MYSQL_RES_PTR{ mysql_store_result(pBI->connection),mysql_free_result };
 }
 
-void QueryFactory::ExcuteWriteQuery()
+int QueryFactory::ExcuteWriteQuery()
 {
 	BufInfo* pBI = GetBufInfo();
-	ASSERT_QUERY(mysql_query(pBI->connection, pBI->pBuf));
+	int ret = mysql_query(pBI->connection, pBI->pBuf);
+	if (ret != 0)
+	{
+		pBI->Clear();
+		return mysql_errno(pBI->connection);
+	}
 	pBI->Clear();
+	return ret;
 }
 
 const char* QueryFactory::MAKE_QUERY(const char* pStr, ...)
@@ -168,6 +178,13 @@ const char* QueryFactory::MAKE_INSERT_INTO(bool bEnd, const char* pTableName, co
 	STRING_CCH_PRINTF_EXA(hr, pBI, &end, ")");
 	ConclusionQueryPart(hr, pBI, &end, bEnd);
 	return pBI->pBuf;
+}
+
+void QueryFactory::WriteMutiQueryFreeResult()
+{
+	BufInfo* pBI = GetBufInfo();
+	MYSQL_RES* res = mysql_store_result(pBI->connection);
+	mysql_free_result(res);
 }
 
 

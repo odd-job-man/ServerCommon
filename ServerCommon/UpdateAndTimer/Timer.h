@@ -1,5 +1,4 @@
 #pragma once
-//#include "MyJob.h"
 #include "UpdateBase.h"
 
 namespace Timer

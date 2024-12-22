@@ -37,5 +37,5 @@ void DBWriteThreadBase::ReqDBWriteJob(Packet* pPacket)
 	if (InterlockedExchange((LONG*)&bAlreadyWorking_, TRUE) == TRUE)
 		return;
 
-	PostQueuedCompletionStatus(hcp_, 2, (ULONG_PTR)pPacket, (LPOVERLAPPED)&DBWriteThreadBase::DBWriteOverlapped);
+	PostQueuedCompletionStatus(hcp_, 2, (ULONG_PTR)this, (LPOVERLAPPED)&DBWriteThreadBase::DBWriteOverlapped);
 }

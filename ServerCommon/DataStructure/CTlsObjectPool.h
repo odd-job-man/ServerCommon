@@ -8,7 +8,7 @@
 template<typename T,BOOL bPlacementNew>
 struct Bucket
 {
-	static constexpr int size = 100;
+	static constexpr int size = 50;
 	struct NODE
 	{
 		T data;
@@ -196,7 +196,7 @@ public:
 	alignas(64) uint64_t metaCnt_;
 	alignas(64) long capacity_;
 	alignas(64) long size_;
-	long AllocSize_;
+	long AllocSize_ = 0;
 private:
 
 	// 스레드의 Tls에 최초 할당 혹은 다써서 버킷이 없다면 락프리 스택구조로 버킷을 할당받는다.

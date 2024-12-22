@@ -45,31 +45,28 @@ HMonitor::HMonitor()
 	WCHAR PPBQueryStr[MAX_PATH];
 	WCHAR PNPBQueryStr[MAX_PATH];
 
-	ASSERT_NOT_ERROR_SUCCESS(PdhOpenQuery(NULL, NULL, &PPBQuery));
-	ASSERT_NOT_ERROR_SUCCESS(PdhOpenQuery(NULL, NULL, &PNPBQuery));
-	ASSERT_NOT_ERROR_SUCCESS(PdhOpenQuery(NULL, NULL, &MABQuery));
-	ASSERT_NOT_ERROR_SUCCESS(PdhOpenQuery(NULL, NULL, &NPBQuery));
-	ASSERT_NOT_ERROR_SUCCESS(PdhOpenQuery(NULL, NULL, &RETRANSEQuery));
-	ASSERT_NOT_ERROR_SUCCESS(PdhOpenQuery(NULL, NULL, &TCPTimeOutQuery));
+	ASSERT_NOT_ERROR_SUCCESS(PdhOpenQuery(NULL, NULL, &hQuery));
 
 	wsprintf(PPBQueryStr, L"\\Process(%s)\\Private Bytes", processName.c_str());
-	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(PPBQuery, PPBQueryStr, NULL, &PPBCounter));
+	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(hQuery, PPBQueryStr, NULL, &PPBCounter));
 
 	wsprintf(PNPBQueryStr,L"\\Process(%s)\\Pool Nonpaged Bytes" , processName.c_str());
-	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(PNPBQuery, PNPBQueryStr, NULL, &PNPBCounter));
-	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(MABQuery, L"\\Memory\\Available MBytes", NULL, &MABCounter));
-	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(NPBQuery, L"\\Memory\\Pool Nonpaged Bytes", NULL, &NPBCounter));
-	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(RETRANSEQuery, L"\\TCPv4\\Segments Retransmitted/sec", NULL, &RETRANSECounter));
-	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(TCPTimeOutQuery, L"\\TCPIP Performance Diagnostics\\TCP timeouts", NULL, &TCPTimeOutCounter));
+	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(hQuery, PNPBQueryStr, NULL, &PNPBCounter));
+	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(hQuery, L"\\Memory\\Available MBytes", NULL, &MABCounter));
+	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(hQuery, L"\\Memory\\Pool Nonpaged Bytes", NULL, &NPBCounter));
+	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(hQuery, L"\\TCPv4\\Segments Retransmitted/sec", NULL, &RETRANSECounter));
+	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(hQuery, L"\\TCPIP Performance Diagnostics\\TCP timeouts", NULL, &TCPTimeOutCounter));
+
+	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(hQuery, L"\\Network Adapter(Realtek PCIe GBE Family Controller)\\Bytes Received/sec", NULL, &netWorkRecvbytes1));
+	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(hQuery, L"\\Network Adapter(Realtek PCIe GBE Family Controller _2)\\Bytes Received/sec", NULL, &netWorkRecvbytes2));
+	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(hQuery, L"\\Network Adapter(Realtek PCIe GBE Family Controller)\\Bytes Sent/sec", NULL, &netWorkSendbytes1));
+	ASSERT_NOT_ERROR_SUCCESS(PdhAddCounter(hQuery, L"\\Network Adapter(Realtek PCIe GBE Family Controller _2)\\Bytes Sent/sec", NULL, &netWorkSendbytes2));
 	UpdateCpuTime(nullptr, nullptr);
 }
 
 HMonitor::~HMonitor()
 {
-	PdhCloseQuery(PPBQuery);
-	PdhCloseQuery(PNPBQuery);
-	PdhCloseQuery(MABQuery);
-	PdhCloseQuery(NPBQuery);
+	PdhCloseQuery(hQuery);
 }
 
 void HMonitor::UpdateCpuTime(ULONGLONG* pOutTickDiffPerSecElapsed_NULLABLE, ULONGLONG* pOutTotalTickElapsed_NULLABLE)
@@ -162,9 +159,13 @@ void HMonitor::UpdateCpuTime(ULONGLONG* pOutTickDiffPerSecElapsed_NULLABLE, ULON
 	_ftProcess_LastUser = User;
 }
 
+void HMonitor::UpdateQueryData()
+{
+	PdhCollectQueryData(hQuery);
+}
+
 double HMonitor::GetPPB()
 {
-	PdhCollectQueryData(PPBQuery);
 	PDH_FMT_COUNTERVALUE ret;
 	PdhGetFormattedCounterValue(PPBCounter, PDH_FMT_DOUBLE, NULL, &ret);
 	return ret.doubleValue;
@@ -172,7 +173,6 @@ double HMonitor::GetPPB()
 
 double HMonitor::GetPNPB()
 {
-	PdhCollectQueryData(PNPBQuery);
 	PDH_FMT_COUNTERVALUE ret;
 	PdhGetFormattedCounterValue(PNPBCounter, PDH_FMT_DOUBLE, NULL, &ret);
 	return ret.doubleValue;
@@ -180,7 +180,6 @@ double HMonitor::GetPNPB()
 
 double HMonitor::GetAB()
 {
-	PdhCollectQueryData(MABQuery);
 	PDH_FMT_COUNTERVALUE ret;
 	PdhGetFormattedCounterValue(MABCounter, PDH_FMT_DOUBLE, NULL, &ret);
 	return ret.doubleValue;
@@ -188,7 +187,6 @@ double HMonitor::GetAB()
 
 double HMonitor::GetNPB()
 {
-	PdhCollectQueryData(NPBQuery);
 	PDH_FMT_COUNTERVALUE ret;
 	PdhGetFormattedCounterValue(NPBCounter, PDH_FMT_DOUBLE, NULL, &ret);
 	return ret.doubleValue;
@@ -196,7 +194,6 @@ double HMonitor::GetNPB()
 
 double HMonitor::GetRetranse()
 {
-	PdhCollectQueryData(RETRANSEQuery);
 	PDH_FMT_COUNTERVALUE ret;
 	PdhGetFormattedCounterValue(RETRANSECounter, PDH_FMT_DOUBLE, NULL, &ret);
 	return ret.doubleValue;
@@ -204,9 +201,26 @@ double HMonitor::GetRetranse()
 
 double HMonitor::GetTCPTimeOuts()
 {
-	PdhCollectQueryData(TCPTimeOutQuery);
 	PDH_FMT_COUNTERVALUE ret;
 	PdhGetFormattedCounterValue(TCPTimeOutCounter, PDH_FMT_DOUBLE, NULL, &ret);
 	return ret.doubleValue;
+}
+
+double HMonitor::GetNetWorkRecvBytes()
+{
+	PDH_FMT_COUNTERVALUE ret1;
+	PDH_FMT_COUNTERVALUE ret2;
+	PdhGetFormattedCounterValue(netWorkRecvbytes1, PDH_FMT_DOUBLE, NULL, &ret1);
+	PdhGetFormattedCounterValue(netWorkRecvbytes2, PDH_FMT_DOUBLE, NULL, &ret2);
+	return ret1.doubleValue + ret2.doubleValue;
+}
+
+double HMonitor::GetNetWorkSendBytes()
+{
+	PDH_FMT_COUNTERVALUE ret1;
+	PDH_FMT_COUNTERVALUE ret2;
+	PdhGetFormattedCounterValue(netWorkSendbytes1, PDH_FMT_DOUBLE, NULL, &ret1);
+	PdhGetFormattedCounterValue(netWorkSendbytes2, PDH_FMT_DOUBLE, NULL, &ret2);
+	return ret1.doubleValue + ret2.doubleValue;
 }
 
