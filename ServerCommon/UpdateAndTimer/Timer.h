@@ -5,6 +5,7 @@ namespace Timer
 {
 	void Reigster_UPDATE(UpdateBase* pUpdate);
 	void Init();
-	void Release();
+	void Release_TimerThread();
+	void Release_UpdateBase();
 	void Start();
 }

@@ -54,31 +54,12 @@ va_end(va);\
 
 QueryFactory::QueryFactory()
 {
-	tlsIdx_ = TlsAlloc();
-	TLS_ASSERT(tlsIdx_);
 }
 
 QueryFactory::BufInfo* QueryFactory::GetBufInfo()
 {
-	BufInfo* pBI = (BufInfo*)TlsGetValue(tlsIdx_);
-	if (!pBI)
-	{
-		pBI = new BufInfo;
-		pBI->nextPos = pBI->pBuf = new char[INITIAL_SIZE];
-		pBI->size = INITIAL_SIZE;
-		EnterCriticalSection(&connCS);
-		mysql_init(&pBI->conn);
-		pBI->connection = mysql_real_connect(&pBI->conn, "localhost", "root", "vector0812@!", "logdb", 3306, (char*)NULL, 0);
-		LeaveCriticalSection(&connCS);
-		if (pBI->connection == NULL)
-		{
-			LOG(L"ERROR", SYSTEM, TEXTFILE, L"Mysql connection error : %d", mysql_errno(pBI->connection));
-			__debugbreak();
-		}
-		ASSERT_MYSQL_MULTI_STATEMENT_ON(mysql_set_server_option(pBI->connection, MYSQL_OPTION_MULTI_STATEMENTS_ON));
-		TlsSetValue(tlsIdx_, pBI);
-	}
-	return pBI;
+	thread_local BufInfo bi;
+	return &bi;
 }
 
 void QueryFactory::Resize(BufInfo* pBI,char* end)
@@ -187,4 +168,33 @@ void QueryFactory::WriteMutiQueryFreeResult()
 	mysql_free_result(res);
 }
 
+QueryFactory::BufInfo::BufInfo()
+{
+	nextPos = pBuf = new char[INITIAL_SIZE];
+	size = INITIAL_SIZE;
 
+	EnterCriticalSection(&connCS);
+	mysql_init(&conn);
+	connection = mysql_real_connect(&conn, "localhost", "root", "vector0812@!", "logdb", 3306, (char*)NULL, 0);
+	LeaveCriticalSection(&connCS);
+
+	if (connection == NULL)
+	{
+		LOG(L"ERROR", SYSTEM, TEXTFILE, L"Mysql connection error : %d", mysql_errno(connection));
+		__debugbreak();
+	}
+
+	if (0 != mysql_set_server_option(connection, MYSQL_OPTION_MULTI_STATEMENTS_ON))
+	{
+		LOG(L"ERROR", SYSTEM, TEXTFILE, L"Mysql Multiple Statement Failed : %s", mysql_error(connection));
+		__debugbreak();
+	}
+}
+
+QueryFactory::BufInfo::~BufInfo()
+{
+	EnterCriticalSection(&connCS);
+	mysql_close(connection);
+	LeaveCriticalSection(&connCS);
+	delete[] pBuf;
+}

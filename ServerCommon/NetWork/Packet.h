@@ -473,6 +473,7 @@ public:
 	~Packet()
 	{
 		delete[] pBuffer_;
+		pBuffer_ = nullptr;
 	}
 
 	__forceinline LONG IncreaseRefCnt()

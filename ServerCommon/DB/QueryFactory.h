@@ -11,6 +11,8 @@ class QueryFactory
 private:
 	struct BufInfo
 	{
+		BufInfo();
+		~BufInfo();
 		char* pBuf;
 		char* nextPos;
 		int size;
@@ -22,7 +24,6 @@ private:
 		}
 	};
 	static constexpr int INITIAL_SIZE = 500;
-	DWORD tlsIdx_;
 	BufInfo* GetBufInfo();
 	QueryFactory();
 	void Resize(BufInfo* pBI, char* end);

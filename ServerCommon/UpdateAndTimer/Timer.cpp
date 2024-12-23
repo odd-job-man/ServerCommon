@@ -11,7 +11,7 @@
 
 namespace Timer
 {
-    MYOVERLAPPED TimerPostOverlapped;
+	const MYOVERLAPPED TimerPostOverlapped{ OVERLAPPED{},OVERLAPPED_REASON::UPDATE };
 	HANDLE hThread;
     unsigned __stdcall threadFunc(void* pParam);
 	UpdatePQCSInfo uPI;
@@ -79,14 +79,17 @@ void Timer::Reigster_UPDATE(UpdateBase* pUpdate)
 
 void Timer::Init()
 {
-    TimerPostOverlapped.why = OVERLAPPED_REASON::UPDATE;
 	hThread = (HANDLE)_beginthreadex(nullptr, 0, threadFunc, nullptr, CREATE_SUSPENDED, nullptr);
 }
 
-void Timer::Release()
+void Timer::Release_TimerThread()
 {
 	SetEvent(uPI.hTerminateEvent_);
 	WaitForSingleObject(hThread, INFINITE);
+}
+
+void Timer::Release_UpdateBase()
+{
 	for (int i = 0; i < uPI.currentNum_; ++i)
 		delete uPI.pUpdateArr_[i];
 }
