@@ -1,7 +1,6 @@
 #include <WinSock2.h>
 #include <windows.h>
 #include "Timer.h"
-#include"MYOVERLAPPED.h"
 #include "Logger.h"
 #include "Assert.h"
 #include "process.h"
@@ -84,18 +83,24 @@ void Timer::Init()
 
 void Timer::Release_TimerThread()
 {
+	// Lan,Net 서버에서의 ShutDown에서 각각호출시 한번만 처리되도록 예외처리
+	// INVALID_HANDLE_VALUE에 대해 WaitFor을 하면 무한대기하는 현상을 발견
+	if (hThread == INVALID_HANDLE_VALUE)
+		return;
 	SetEvent(uPI.hTerminateEvent_);
 	WaitForSingleObject(hThread, INFINITE);
+	CloseHandle(hThread);
+	hThread = INVALID_HANDLE_VALUE;
 }
 
-void Timer::Release_UpdateBase()
-{
-	for (int i = 0; i < uPI.currentNum_; ++i)
-		delete uPI.pUpdateArr_[i];
-}
 
 void Timer::Start()
 {
 	ResumeThread(hThread);
+}
+
+const MYOVERLAPPED* Timer::GetUpdateOverlapped()
+{
+	return &TimerPostOverlapped;
 }
 

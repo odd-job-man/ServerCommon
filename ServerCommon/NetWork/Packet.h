@@ -8,7 +8,6 @@
 #ifdef GAMESERVER
 #include "GameServer.h"
 #endif
-#include "CLockFreeObjectPool.h"
 
 #define QUEUE
 #include "CTlsObjectPool.h"
