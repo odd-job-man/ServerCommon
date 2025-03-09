@@ -4,8 +4,13 @@
 #include "CommonProtocol.h"
 #include "CMClient.h"
 
-CMClient::CMClient(const WCHAR* pConfigTxt, SERVERNUM WhatServerTypeOfLanClient)
-	:LanClient{ pConfigTxt }, lanClientType_{ WhatServerTypeOfLanClient }
+
+CMClient::CMClient(BOOL bAutoReconnect, LONG autoReconnectCnt, LONG autoReconnectInterval, WCHAR* pIP, USHORT port, DWORD iocpWorkerNum, DWORD cunCurrentThreadNum, BOOL bZeroCopy, LONG maxSession, SERVERNUM WhatServerTypeOfLanClient)
+	:LanClient{ bAutoReconnect,autoReconnectCnt,autoReconnectInterval,pIP,port,iocpWorkerNum,cunCurrentThreadNum,bZeroCopy,maxSession }, lanClientType_{ WhatServerTypeOfLanClient }
+{
+}
+
+CMClient::~CMClient()
 {
 }
 
@@ -15,7 +20,7 @@ BOOL CMClient::Start()
 	{
 		ResumeThread(hIOCPWorkerThreadArr_[i]);
 	}
-	InitialConnect();
+	Connect(false, &sockAddr_);
 	return TRUE;
 }
 
@@ -44,16 +49,25 @@ void CMClient::OnConnect(ULONGLONG id)
 	SendPacket(id, sp);
 }
 
+void CALLBACK ReconnectTimer(PVOID lpParam, BOOLEAN TimerOrWaitFired);
+
 void CMClient::OnRelease(ULONGLONG id)
 {
 	InterlockedExchange((LONG*)&bLogin_, FALSE);
+
+	// юс╫ц
+	HANDLE hTimer;
+	LanClientSession* pSession = pSessionArr_ + LanClientSession::GET_SESSION_INDEX(id);
+	ReconnectQ_.Enqueue(pSession);
+	CreateTimerQueueTimer(&hTimer, NULL, ReconnectTimer, (PVOID)((LanClient*)this), ((LanClient*)this)->autoReconnectInterval_, 0, WT_EXECUTEDEFAULT);
 }
 
 void CMClient::OnConnectFailed(ULONGLONG id)
 {
-	DWORD errCode = WSAGetLastError();
-	LOG(L"ONOFF", ERR, CONSOLE, L"MonitoringServer Connect Failed ErrCode : %u", errCode);
-	LOG(L"ONOFF", ERR, TEXTFILE, L"MonitoringServer Connect Failed ErrCode : %u", errCode);
+}
+
+void CMClient::OnAutoResetAllFailed()
+{
 }
 
 void CMClient::SendToMonitoringServer(BYTE serverNo, BYTE dataType, int dataValue, int timeStamp)

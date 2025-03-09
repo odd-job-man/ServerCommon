@@ -2,11 +2,11 @@
 #include "UpdateBase.h"
 #include "MYOVERLAPPED.h"
 
-namespace Timer
+namespace Scheduler
 {
-	void Reigster_UPDATE(UpdateBase* pUpdate);
+	void Register_UPDATE(UpdateBase* pUpdate);
 	void Init();
-	void Release_TimerThread();
+	void Release_SchedulerThread();
 	void Start();
 	const MYOVERLAPPED* GetUpdateOverlapped();
 }

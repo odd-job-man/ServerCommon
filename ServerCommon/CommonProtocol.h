@@ -113,7 +113,9 @@ enum en_PACKET_TYPE
 	// 서버는 40초 이상동안 메시지 수신이 없는 클라이언트를 강제로 끊어줘야 함.
 	//------------------------------------------------------------	
 	en_PACKET_CS_CHAT_REQ_HEARTBEAT,
-	en_PACKET_MONITOR_CLIENT_LOGIN,
+	en_PACKET_CS_CHAT_MONITOR_CLIENT_LOGIN,
+	en_PACKET_CS_CHAT_REQ_SECTOR_INFO,
+	en_PACKET_CS_CHAT_RES_SECTOR_INFO,
 
 		//------------------------------------------------------
 // Login Server

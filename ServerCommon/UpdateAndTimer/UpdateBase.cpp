@@ -1,14 +1,20 @@
 #include <WinSock2.h>
 #include <windows.h>
-#include "Timer.h"
+#include "Scheduler.h"
 #include "UpdateBase.h"
 #include "MYOVERLAPPED.h"
 
 MYOVERLAPPED updatePostOverlapped = { WSAOVERLAPPED{},OVERLAPPED_REASON::POST };
 
+#pragma warning(disable : 26495)
 UpdateBase::UpdateBase(DWORD tickPerFrame, HANDLE hCompletionPort, LONG pqcsLimit)
-	:TICK_PER_FRAME_{ tickPerFrame }, singleThreadGate_{ 0 }, fps_{ 0 }, pqcsUpdateCnt_{ 0 },
-	hcp_{ hCompletionPort }, pqcsLimit_{ pqcsLimit } 
+	:TICK_PER_FRAME_{ tickPerFrame }, singleThreadGate_{ 0 }, fps_{ 0 }, unProcessedPqcsCnt_{ 0 },
+	hcp_{ hCompletionPort }, AllowedUnProcessedPqcsLimit{ pqcsLimit } 
+{
+}
+#pragma warning(default : 26495)
+
+UpdateBase::~UpdateBase()
 {
 }
 
@@ -23,7 +29,7 @@ void UpdateBase::Update()
 {
 	if (InterlockedIncrement(&singleThreadGate_) - 1 > 0)
 	{
-		InterlockedDecrement(&pqcsUpdateCnt_);
+		InterlockedDecrement(&unProcessedPqcsCnt_);
 		return;
 	}
 
@@ -35,12 +41,12 @@ void UpdateBase::Update()
 
 	while (1)
 	{
-		Update_IMPL();
+		Update_IMPL(); // 파생클래스에서 해당 가상함수를 오버라이딩하면 UPDATE_IMPL안의 내용들은 하나의 스레드에 의해서 직렬처리됨을 보장함.
 		InterlockedIncrement(&fps_);
 		timeStamp_ = timeGetTime();
-		if (timeStamp_ > oldFrameTick_ + TICK_PER_FRAME_)
+		if (timeStamp_ > oldFrameTick_ + TICK_PER_FRAME_)  
 		{
-			oldFrameTick_ = timeStamp_ - ((timeStamp_ - firstTimeCheck_) % TICK_PER_FRAME_);
+			oldFrameTick_ = timeStamp_ - ((timeStamp_ - firstTimeCheck_) % TICK_PER_FRAME_); // 프레임이 밀렷을때
 			InterlockedExchange(&singleThreadGate_, 1);
 			continue;
 		}
@@ -52,16 +58,18 @@ void UpdateBase::Update()
 			continue;
 		}
 
-		InterlockedDecrement(&pqcsUpdateCnt_);
+		InterlockedDecrement(&unProcessedPqcsCnt_);
 		break;
 	}
 }
 
 
 
+#pragma warning(disable : 26495)
 MonitoringUpdate::MonitoringUpdate(HANDLE hCompletionPort, DWORD tickPerFrame, LONG pqcsLimit)
 	:UpdateBase{ tickPerFrame,hCompletionPort,pqcsLimit }
 {}
+#pragma warning(default : 26495)
 
 void MonitoringUpdate::RegisterMonitor(const Monitorable* pTargetToMonitor)
 {

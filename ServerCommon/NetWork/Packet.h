@@ -12,13 +12,14 @@
 #define QUEUE
 #include "CTlsObjectPool.h"
 #include "Logger.h"
+#include "RingBuffer.h"
 
 
 //#define DEBUG_LEAK
 
 using NET_HEADER = short;
 
-enum RecvType 
+enum class RecvType 
 {
 	JOB,
 	RECVED_PACKET
@@ -64,7 +65,7 @@ public:
 #pragma pack(pop)
 	static inline unsigned char PACKET_CODE;
 	static inline unsigned char FIXED_KEY;
-	static constexpr int RINGBUFFER_SIZE = 10000;
+	static constexpr int RINGBUFFER_SIZE = BUFFER_SIZE;
 	int bufferSize_ = 300 + sizeof(NetHeader);
 
 	bool Resize()

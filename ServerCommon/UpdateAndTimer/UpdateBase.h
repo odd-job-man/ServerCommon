@@ -4,6 +4,7 @@
 #include "CLockFreeQueue.h"
 #include "Monitorable.h"
 
+// Timer스레드가 PQCS를 쏘기위한 스케줄링 정보를 담는 구조체
 struct ScheduleRsc
 {
 	DWORD firstTimeCheck_;
@@ -23,37 +24,54 @@ struct ScheduleRsc
 	}
 };
 
+namespace Scheduler
+{
+	unsigned __stdcall threadFunc(void* pParam);
+}
+
+struct UpdatePQCSInfo;
+
 class UpdateBase
 {
 public:
 	UpdateBase(DWORD tickPerFrame, HANDLE hCompletionPort, LONG pqcsLimit);
-	void firstTimeInit();
+	virtual ~UpdateBase();
 	void Update();
+protected:
 	virtual void Update_IMPL() = 0;
+private:
+	void firstTimeInit();
+	bool bFirst_ = false;
 	LONG singleThreadGate_ = 0;
 	DWORD timeStamp_ = 0;
 	DWORD oldFrameTick_ = 0;
 	DWORD firstTimeCheck_ = 0;
 	const DWORD TICK_PER_FRAME_;
+public:
 	LONG fps_ = 0;
-	const LONG pqcsLimit_ = 0;
-	ScheduleRsc scdr;
-
-	LONG pqcsUpdateCnt_;
-	bool bFirst_ = false;
+private:
+	LONG unProcessedPqcsCnt_;
+	const LONG AllowedUnProcessedPqcsLimit = 0;
+private:
+	alignas(64) ScheduleRsc scdr;
+protected:
 	const HANDLE hcp_;
+private:
+	friend struct UpdatePQCSInfo;
+	friend unsigned __stdcall Scheduler::threadFunc(void* pParam);
 };
 
 
 class MonitoringUpdate : public UpdateBase 
 {
-public:
+private:
 	static constexpr int len = 14;
 	Monitorable* pArr_[len];
 	int curNum_ = 0;
+	virtual void Update_IMPL() override;
+public:
 	MonitoringUpdate(HANDLE hCompletionPort, DWORD tickPerFrame, LONG pqcsLimit);
 	void RegisterMonitor(const Monitorable* pTargetToMonitor);
-	virtual void Update_IMPL() override;
 };
 
 struct UpdatePQCSInfo
